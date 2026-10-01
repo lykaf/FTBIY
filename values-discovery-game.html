@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Find Your Top 3 Values</title>
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #dfe3eb;
+      --accent: #5b5bd6;
+      --accent-soft: #eeeeff;
+      --success: #116149;
+      --shadow: 0 10px 30px rgba(31,41,55,.08);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    button { font: inherit; }
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 300px;
+      gap: 24px;
+      padding: 28px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .main, .sidebar {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .main { padding: 32px; }
+    .sidebar { padding: 24px; align-self: start; position: sticky; top: 28px; }
+    .eyebrow {
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 44px); }
+    h2 { margin: 0 0 8px; font-size: 24px; }
+    p { color: var(--muted); line-height: 1.55; }
+    .progress-wrap { margin: 26px 0 30px; }
+    .progress-meta { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 8px; font-size: 14px; color: var(--muted); }
+    .progress { height: 10px; background: #eceef4; border-radius: 999px; overflow: hidden; }
+    .progress > div { height: 100%; background: var(--accent); width: 0%; transition: width .3s ease; }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .card {
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      background: white;
+      padding: 18px;
+      min-height: 122px;
+      text-align: left;
+      cursor: pointer;
+      transition: transform .15s ease, border-color .15s ease, background .15s ease, box-shadow .15s ease;
+      position: relative;
+    }
+    .card:hover { transform: translateY(-2px); border-color: #b9bde7; }
+    .card.selected { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 6px 18px rgba(91,91,214,.12); }
+    .card.selected::after {
+      content: "✓";
+      position: absolute;
+      right: 14px;
+      top: 12px;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: white;
+      background: var(--accent);
+      font-weight: 800;
+    }
+    .value-name { font-size: 18px; font-weight: 800; margin-bottom: 7px; }
+    .value-def { font-size: 14px; color: var(--muted); line-height: 1.45; padding-right: 24px; }
+    .actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+    .btn {
+      border: 0;
+      border-radius: 12px;
+      padding: 12px 18px;
+      cursor: pointer;
+      font-weight: 800;
+    }
+    .btn.primary { background: var(--accent); color: white; }
+    .btn.secondary { background: #eef0f5; color: var(--text); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .stack-title { font-weight: 800; margin-bottom: 4px; }
+    .stack-help { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+    .stack { display: grid; gap: 9px; }
+    .chip {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 11px 12px;
+      font-weight: 700;
+      background: #fafaff;
+    }
+    .chip.empty { color: #9ca3af; font-weight: 600; border-style: dashed; background: transparent; }
+    .final-layout { display: grid; grid-template-columns: 1fr; gap: 20px; }
+    .final-choice-note { background: #fff8e7; border: 1px solid #f0dca9; padding: 14px 16px; border-radius: 12px; color: #6a531c; font-size: 14px; }
+    .result-box {
+      padding: 26px;
+      background: linear-gradient(145deg, #f2f2ff, #ffffff);
+      border: 1px solid #d8d8ff;
+      border-radius: 18px;
+    }
+    .result-list { display: grid; gap: 12px; margin-top: 18px; }
+    .result-item { background: white; border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+    .result-item strong { display: block; font-size: 19px; margin-bottom: 4px; }
+    .swap-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .mini { border: 1px solid var(--border); border-radius: 999px; padding: 8px 10px; background: white; cursor: pointer; }
+    .hidden { display: none !important; }
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; padding: 16px; }
+      .sidebar { position: static; }
+    }
+    @media (max-width: 620px) {
+      .main { padding: 22px; }
+      .cards { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <main class="main">
+      <div id="gameView">
+        <div class="eyebrow" id="eyebrow">Round 1 of 3</div>
+        <h1 id="title">Choose the 2 values that matter most.</h1>
+        <p id="subtitle">You’ll see 10 values at a time. Select exactly 2 from each set.</p>
+
+        <div class="progress-wrap">
+          <div class="progress-meta"><span id="progressLabel">Round 1</span><span id="selectionCount">0 of 2 selected</span></div>
+          <div class="progress"><div id="progressBar"></div></div>
+        </div>
+
+        <div id="cards" class="cards"></div>
+        <div class="actions">
+          <button class="btn primary" id="nextBtn" disabled>Continue</button>
+        </div>
+      </div>
+
+      <div id="finalView" class="hidden">
+        <div class="eyebrow">Final round</div>
+        <h1>Choose your 3 non-negotiables.</h1>
+        <p>You chose these six values across the first three rounds. Now select the three you would be least willing to compromise.</p>
+        <div class="final-choice-note">Imagine a difficult decision where you cannot protect everything. Which three values would you fight hardest to preserve?</div>
+        <div class="progress-wrap">
+          <div class="progress-meta"><span>Final 6 → Top 3</span><span id="finalCount">0 of 3 selected</span></div>
+          <div class="progress"><div id="finalProgressBar" style="width:75%"></div></div>
+        </div>
+        <div id="finalCards" class="cards"></div>
+        <div class="actions">
+          <button class="btn primary" id="reviewBtn" disabled>Review my Top 3</button>
+        </div>
+      </div>
+
+      <div id="reviewView" class="hidden">
+        <div class="eyebrow">One last check</div>
+        <h1>Would you still choose these three?</h1>
+        <p>These are the values you said you would protect when tradeoffs get difficult. You can swap any one before locking them in.</p>
+        <div class="result-box">
+          <h2>Your current Top 3</h2>
+          <div id="reviewTop3" class="result-list"></div>
+          <div style="margin-top:20px; font-weight:800;">Still important</div>
+          <div id="reviewOthers" class="swap-list"></div>
+        </div>
+        <div class="actions">
+          <button class="btn secondary" id="backBtn">Change choices</button>
+          <button class="btn primary" id="lockBtn">Lock in my Top 3</button>
+        </div>
+      </div>
+
+      <div id="resultView" class="hidden">
+        <div class="eyebrow">Your result</div>
+        <h1>Your Top 3 Values</h1>
+        <p>Use these as a lens for decisions, priorities, relationships, and work.</p>
+        <div class="result-box">
+          <div id="resultList" class="result-list"></div>
+        </div>
+        <div class="actions">
+          <button class="btn secondary" id="restartBtn">Start over</button>
+        </div>
+      </div>
+    </main>
+
+    <aside class="sidebar">
+      <div class="stack-title">Your selections</div>
+      <div class="stack-help">Your chosen values stay visible here as you move through the rounds.</div>
+      <div id="stack" class="stack"></div>
+    </aside>
+  </div>
+
+<script>
+const values = [
+  {name:'Integrity', def:'Acting consistently with your principles, even when it is difficult.'},
+  {name:'Innovation', def:'Creating new ideas, approaches, or possibilities.'},
+  {name:'Service', def:'Contributing to the well-being of other people or a larger purpose.'},
+  {name:'Autonomy', def:'Having meaningful freedom to make your own choices.'},
+  {name:'Learning', def:'Continuously gaining knowledge, insight, and new skills.'},
+  {name:'Belonging', def:'Feeling accepted, connected, and part of something.'},
+  {name:'Achievement', def:'Reaching meaningful goals and accomplishing difficult things.'},
+  {name:'Balance', def:'Making room for the different parts of life that matter.'},
+  {name:'Creativity', def:'Expressing ideas and making something original.'},
+  {name:'Security', def:'Having stability, predictability, and a reliable foundation.'},
+
+  {name:'Courage', def:'Acting despite fear, uncertainty, or personal risk.'},
+  {name:'Compassion', def:'Responding to others with care, empathy, and concern.'},
+  {name:'Excellence', def:'Striving for high standards and quality in what you do.'},
+  {name:'Freedom', def:'Having room to live, think, and act without unnecessary constraint.'},
+  {name:'Collaboration', def:'Working with others toward shared goals.'},
+  {name:'Adventure', def:'Seeking new experiences, discovery, and healthy risk.'},
+  {name:'Responsibility', def:'Being dependable and accountable for your commitments.'},
+  {name:'Growth', def:'Becoming more capable, mature, and effective over time.'},
+  {name:'Family', def:'Prioritizing close family bonds, care, and connection.'},
+  {name:'Impact', def:'Making a meaningful difference through your actions.'},
+
+  {name:'Curiosity', def:'Wanting to explore, ask questions, and understand more deeply.'},
+  {name:'Justice', def:'Promoting fairness, dignity, and equitable treatment.'},
+  {name:'Leadership', def:'Helping create direction, momentum, and confidence for others.'},
+  {name:'Simplicity', def:'Reducing unnecessary complexity and focusing on what matters.'},
+  {name:'Mastery', def:'Developing deep skill and capability in something important.'},
+  {name:'Honesty', def:'Being truthful, transparent, and sincere.'},
+  {name:'Community', def:'Investing in mutual support and shared connection.'},
+  {name:'Health', def:'Protecting physical, mental, and emotional well-being.'},
+  {name:'Influence', def:'Having the ability to shape decisions, ideas, or outcomes.'},
+  {name:'Joy', def:'Making space for delight, playfulness, and positive experience.'}
+];
+
+const rounds = [values.slice(0,10), values.slice(10,20), values.slice(20,30)];
+let roundIndex = 0;
+let currentSelection = [];
+let chosenSix = [];
+let finalSelection = [];
+
+const $ = id => document.getElementById(id);
+
+function renderRound() {
+  $('eyebrow').textContent = `Round ${roundIndex + 1} of 3`;
+  $('progressLabel').textContent = `Round ${roundIndex + 1}`;
+  $('progressBar').style.width = `${(roundIndex / 3) * 75}%`;
+  $('selectionCount').textContent = `${currentSelection.length} of 2 selected`;
+  $('nextBtn').disabled = currentSelection.length !== 2;
+  $('nextBtn').textContent = roundIndex === 2 ? 'See my Final 6' : 'Next set';
+
+  $('cards').innerHTML = '';
+  rounds[roundIndex].forEach(v => {
+    const btn = document.createElement('button');
+    btn.className = 'card' + (currentSelection.includes(v.name) ? ' selected' : '');
+    btn.innerHTML = `<div class="value-name">${v.name}</div><div class="value-def">${v.def}</div>`;
+    btn.onclick = () => toggleRoundValue(v.name);
+    $('cards').appendChild(btn);
+  });
+  renderStack();
+}
+
+function toggleRoundValue(name) {
+  if (currentSelection.includes(name)) {
+    currentSelection = currentSelection.filter(x => x !== name);
+  } else if (currentSelection.length < 2) {
+    currentSelection.push(name);
+  }
+  renderRound();
+}
+
+$('nextBtn').onclick = () => {
+  if (currentSelection.length !== 2) return;
+  chosenSix.push(...currentSelection);
+  currentSelection = [];
+  if (roundIndex < 2) {
+    roundIndex++;
+    renderRound();
+  } else {
+    showFinal();
+  }
+};
+
+function renderStack() {
+  const stack = $('stack');
+  stack.innerHTML = '';
+  const active = [...chosenSix, ...currentSelection];
+  for (let i = 0; i < 6; i++) {
+    const d = document.createElement('div');
+    d.className = 'chip' + (active[i] ? '' : ' empty');
+    d.textContent = active[i] || `Selection ${i + 1}`;
+    stack.appendChild(d);
+  }
+}
+
+function showFinal() {
+  $('gameView').classList.add('hidden');
+  $('finalView').classList.remove('hidden');
+  finalSelection = [];
+  renderFinal();
+}
+
+function renderFinal() {
+  $('finalCount').textContent = `${finalSelection.length} of 3 selected`;
+  $('reviewBtn').disabled = finalSelection.length !== 3;
+  $('finalCards').innerHTML = '';
+  chosenSix.forEach(name => {
+    const v = values.find(x => x.name === name);
+    const btn = document.createElement('button');
+    btn.className = 'card' + (finalSelection.includes(name) ? ' selected' : '');
+    btn.innerHTML = `<div class="value-name">${v.name}</div><div class="value-def">${v.def}</div>`;
+    btn.onclick = () => {
+      if (finalSelection.includes(name)) finalSelection = finalSelection.filter(x => x !== name);
+      else if (finalSelection.length < 3) finalSelection.push(name);
+      renderFinal();
+    };
+    $('finalCards').appendChild(btn);
+  });
+  renderStackFinal();
+}
+
+function renderStackFinal() {
+  $('stack').innerHTML = '';
+  chosenSix.forEach(name => {
+    const d = document.createElement('div');
+    d.className = 'chip';
+    d.textContent = name;
+    $('stack').appendChild(d);
+  });
+}
+
+$('reviewBtn').onclick = () => {
+  if (finalSelection.length !== 3) return;
+  $('finalView').classList.add('hidden');
+  $('reviewView').classList.remove('hidden');
+  renderReview();
+};
+
+function renderReview() {
+  $('reviewTop3').innerHTML = '';
+  finalSelection.forEach(name => {
+    const v = values.find(x => x.name === name);
+    const div = document.createElement('div');
+    div.className = 'result-item';
+    div.innerHTML = `<strong>${v.name}</strong><span>${v.def}</span>`;
+    $('reviewTop3').appendChild(div);
+  });
+
+  const others = chosenSix.filter(x => !finalSelection.includes(x));
+  $('reviewOthers').innerHTML = '';
+  others.forEach(name => {
+    const btn = document.createElement('button');
+    btn.className = 'mini';
+    btn.textContent = `${name} — swap in`;
+    btn.onclick = () => swapIn(name);
+    $('reviewOthers').appendChild(btn);
+  });
+}
+
+function swapIn(name) {
+  const replaced = prompt(`Which value should ${name} replace?\n\n${finalSelection.map((x,i)=>`${i+1}. ${x}`).join('\n')}\n\nEnter 1, 2, or 3:`);
+  const idx = Number(replaced) - 1;
+  if (idx >= 0 && idx < 3) {
+    finalSelection[idx] = name;
+    renderReview();
+  }
+}
+
+$('backBtn').onclick = () => {
+  $('reviewView').classList.add('hidden');
+  $('finalView').classList.remove('hidden');
+  renderFinal();
+};
+
+$('lockBtn').onclick = () => {
+  $('reviewView').classList.add('hidden');
+  $('resultView').classList.remove('hidden');
+  $('resultList').innerHTML = '';
+  finalSelection.forEach((name, i) => {
+    const v = values.find(x => x.name === name);
+    const div = document.createElement('div');
+    div.className = 'result-item';
+    div.innerHTML = `<strong>${i+1}. ${v.name}</strong><span>${v.def}</span>`;
+    $('resultList').appendChild(div);
+  });
+  $('stack').innerHTML = '';
+  finalSelection.forEach(name => {
+    const d = document.createElement('div');
+    d.className = 'chip';
+    d.textContent = name;
+    $('stack').appendChild(d);
+  });
+};
+
+$('restartBtn').onclick = () => {
+  roundIndex = 0;
+  currentSelection = [];
+  chosenSix = [];
+  finalSelection = [];
+  $('resultView').classList.add('hidden');
+  $('gameView').classList.remove('hidden');
+  renderRound();
+};
+
+renderRound();
+</script>
+</body>
+</html>
